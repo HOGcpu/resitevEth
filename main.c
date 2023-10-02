@@ -37,32 +37,52 @@ bool CheckType (char * r, int indexEth, char text[5])
 
 }
 
-void decToHex(char outStr[5], long decNumber) {
+void binaryToHex(const char *inStr, char *outStr) {
+    // outStr must be at least strlen(inStr)/4 + 1 bytes.
+    static char hex[] = "0123456789abcdef";
+    int len = strlen(inStr) / 4;
+    int i = len % 4;
+    char current = 0;
+    if(i) { // handle not multiple of 4
+        while(i--) {
+            current = (current << 1) + (*inStr - '0');
+            inStr++;
+        }
+        *outStr = hex[current];
+        ++outStr;
+    }
+    while(len--) {
+        current = 0;
+        for(i = 0; i < 4; ++i) {
+            current = (current << 1) + (*inStr - '0');
+            inStr++;
+        }
+        *outStr = hex[current];
+        ++outStr;
+    }
+    *outStr = 0; // null byte
+    }
 
-  long remainder;
-  int j = 3;
-  //input outStr should be = "0000";
-  if (decNumber < 0) {
-    decNumber = 65535 + decNumber;
-  }
-
-  while (decNumber != 0) {
-    remainder = decNumber % 16;
-    if (remainder < 10)
-      outStr[j--] = 48 + remainder;
-    else
-      outStr[j--] = 55 + remainder;
-    decNumber = decNumber / 16;
-  }
-}
-
-
+// implemeneted for binary buffer
 bool ethIpv4Parse (const void* buffer, size_t bufLen, Ipv4Info* info)
 {
-    //printf((char*)buffer);
+    //conversion from bin to hex
+    const char * inStr = (char*)buffer;
+    char * r;
 
-    char *r = (char*)buffer;
-    printf("%c\n",r[0]);
+    binaryToHex(inStr, r);
+
+    printf(r);
+
+
+
+    size_t buflenCheck;
+    buflenCheck = strlen(r);
+
+    //if buflen doesn't match, return false
+    if (bufLen/4 != buflenCheck){
+        return false;
+    }
 
     // first we check if preamble is set correctly
     for(int i = 0; i < 16; i++){
@@ -84,6 +104,7 @@ bool ethIpv4Parse (const void* buffer, size_t bufLen, Ipv4Info* info)
         }
     }
 
+    // first index of potential ethertype data field
     int ethernetIndex = 40;
     bool chckType;
     // check if etherType at index 40 and ending at index 43 is IPV4
@@ -192,11 +213,14 @@ bool ethIpv4Parse (const void* buffer, size_t bufLen, Ipv4Info* info)
 int main()
 {
     FILE* file = fopen("pretvorba.txt", "r");
-    char line[2048];
+    char line[4096];
     int i = 0;
+
+    // we chose type of ethernet packet (1 for without VLAN tagging, 4 and 7 with VLAN tagging and 10 invalid) hex versions
+    // 2,5,8,11 for binary versions
     while (fgets(line, sizeof(line), file)) {
         i++;
-        if(i == 1)
+        if(i == 14)
         {
             break;
         }
@@ -206,22 +230,16 @@ int main()
     Ipv4Info ipInfo;
 
     Ipv4Info *tdInfo = &ipInfo;
-    //tdInfo = malloc(sizeof(ipInfo));
-
-    tdInfo->dscp = 11;
-    tdInfo->protocol = 22;
-    tdInfo->optionsPresent = false;
-
-    //ipInfo.protocol = 231;
-    printf("%d\n",tdInfo->protocol);
 
     const void* buffer = &line;
 
     size_t buflen;
-    buflen = strlen(buffer);
+    // minus 1 because of newline character
+    buflen = strlen(buffer) -1;
 
     bool isIPv4;
 
+    // our function for parsing ethPacket
     isIPv4 = ethIpv4Parse(buffer, buflen, tdInfo);
 
     return isIPv4;
