@@ -1,0 +1,10 @@
+# depslib dependency file v1.0
+1696269562 source:c:\users\gregor\documents\ardd\zaaviat\resitevaviat\main.c
+	<stdio.h>
+	<conio.h>
+	<stdint.h>
+	<stdbool.h>
+	<string.h>
+	<stdlib.h>
+	<pcap.h>
+
